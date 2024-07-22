@@ -6,6 +6,7 @@ import observer.Publisher;
 
 public class Book extends Publisher {
     private int id;
+    private String name;
     private Date entryDate;
     private double unitPrice;
     private int quantity;
@@ -19,9 +20,10 @@ public class Book extends Publisher {
     public Book() {
     };
 
-    public Book(int id, Date entryDate, double unitPrice, int quantity, String publisher, String bookType,
+    public Book(int id, String name, Date entryDate, double unitPrice, int quantity, String publisher, String bookType,
             String condition, double tax, double totalPrice) {
         this.id = id;
+        this.name = name;
         this.entryDate = entryDate;
         this.unitPrice = unitPrice;
         this.quantity = quantity;
@@ -32,9 +34,10 @@ public class Book extends Publisher {
         this.totalPrice = totalPrice;
     }
 
-    public Book(int id, Date entryDate, double unitPrice, int quantity, String publisher, String bookType,
+    public Book(int id, String name, Date entryDate, double unitPrice, int quantity, String publisher, String bookType,
             String condition, double tax) {
         this.id = id;
+        this.name = name;
         this.entryDate = entryDate;
         this.unitPrice = unitPrice;
         this.quantity = quantity;
@@ -48,6 +51,10 @@ public class Book extends Publisher {
     // getter
     public int getId() {
         return id;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public Date getEntryDate() {
@@ -117,6 +124,10 @@ public class Book extends Publisher {
 
     public void setTotalPrice(double totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     // functions, methods

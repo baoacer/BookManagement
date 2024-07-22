@@ -19,19 +19,20 @@ public class BookRepositoryImpl implements BookRepository {
     // Method to add a book to the database
     @Override
     public void addBook(Book book) {
-        String sql = "INSERT INTO books (id, entryDate, unitPrice, quantity, publisher, bookType, conditions, tax, totalPrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO books (id, name, entryDate, unitPrice, quantity, publisher, bookType, conditions, tax, totalPrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection connect = connect();
                 PreparedStatement pstmt = connect.prepareStatement(sql)) {
             pstmt.setInt(1, book.getId());
-            pstmt.setDate(2, book.getEntryDate());
-            pstmt.setDouble(3, book.getUnitPrice());
-            pstmt.setInt(4, book.getQuantity());
-            pstmt.setString(5, book.getPublisher());
-            pstmt.setString(6, book.getBookType());
-            pstmt.setString(7, book.getCondition());
-            pstmt.setDouble(8, book.getTax());
-            pstmt.setDouble(9, book.getTotalPrice());
+            pstmt.setString(2, book.getName());
+            pstmt.setDate(3, book.getEntryDate());
+            pstmt.setDouble(4, book.getUnitPrice());
+            pstmt.setInt(5, book.getQuantity());
+            pstmt.setString(6, book.getPublisher());
+            pstmt.setString(7, book.getBookType());
+            pstmt.setString(8, book.getCondition());
+            pstmt.setDouble(9, book.getTax());
+            pstmt.setDouble(10, book.getTotalPrice());
 
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -53,6 +54,7 @@ public class BookRepositoryImpl implements BookRepository {
             if (result.next()) {
                 book = new Book(
                         result.getInt("id"),
+                        result.getString("name"), // Đảm bảo lấy giá trị name từ database
                         result.getDate("entryDate"),
                         result.getDouble("unitPrice"),
                         result.getInt("quantity"),
@@ -82,6 +84,7 @@ public class BookRepositoryImpl implements BookRepository {
             while (result.next()) {
                 Book book = new Book(
                         result.getInt("id"),
+                        result.getString("name"), // Đảm bảo lấy giá trị name từ database
                         result.getDate("entryDate"),
                         result.getDouble("unitPrice"),
                         result.getInt("quantity"),
@@ -102,19 +105,20 @@ public class BookRepositoryImpl implements BookRepository {
     // Method to update a book
     @Override
     public void updateBook(Book book) {
-        String sql = "UPDATE books SET entryDate = ?, unitPrice = ?, quantity = ?, publisher = ?, bookType = ?, conditions = ?, tax = ?, totalPrice = ? WHERE id = ?";
+        String sql = "UPDATE books SET name = ?, entryDate = ?, unitPrice = ?, quantity = ?, publisher = ?, bookType = ?, conditions = ?, tax = ?, totalPrice = ? WHERE id = ?";
 
         try (Connection connect = connect();
                 PreparedStatement pstmt = connect.prepareStatement(sql)) {
-            pstmt.setDate(1, book.getEntryDate());
-            pstmt.setDouble(2, book.getUnitPrice());
-            pstmt.setInt(3, book.getQuantity());
-            pstmt.setString(4, book.getPublisher());
-            pstmt.setString(5, book.getBookType());
-            pstmt.setString(6, book.getCondition());
-            pstmt.setDouble(7, book.getTax());
-            pstmt.setDouble(8, book.getTotalPrice());
-            pstmt.setInt(9, book.getId());
+            pstmt.setString(1, book.getName()); // Đảm bảo truyền giá trị name
+            pstmt.setDate(2, book.getEntryDate());
+            pstmt.setDouble(3, book.getUnitPrice());
+            pstmt.setInt(4, book.getQuantity());
+            pstmt.setString(5, book.getPublisher());
+            pstmt.setString(6, book.getBookType());
+            pstmt.setString(7, book.getCondition());
+            pstmt.setDouble(8, book.getTax());
+            pstmt.setDouble(9, book.getTotalPrice());
+            pstmt.setInt(10, book.getId());
 
             pstmt.executeUpdate();
         } catch (SQLException e) {

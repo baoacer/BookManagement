@@ -19,7 +19,6 @@ public class AddBookCommand extends Command {
         }
 
         this.book = book;
-
     }
 
     @Override

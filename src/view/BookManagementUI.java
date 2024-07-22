@@ -6,6 +6,7 @@ import javax.swing.table.DefaultTableModel;
 import Command_Processor.AddBookCommand;
 import Command_Processor.Command;
 import Command_Processor.CommandProcessor;
+import Command_Processor.FindBookCommand;
 import Command_Processor.GetAllBookCommand;
 import Entity.Book;
 import observer.Subscriber;
@@ -27,11 +28,11 @@ public class BookManagementUI extends JFrame implements Subscriber {
     private JTable bookTable;
 
     // JLabel
-    private JLabel idLabel, entryDateLabel, unitPriceLabel, quantityLabel, publisherLabel, bookTypeLabel,
+    private JLabel idLabel, nameLabel, entryDateLabel, unitPriceLabel, quantityLabel, publisherLabel, bookTypeLabel,
             conditionLabel, taxLabel, totalPriceLabel;
 
     // JTextField
-    private JTextField idField, entryDateField, unitPriceField, quantityField, publisherField, taxField,
+    private JTextField idField, nameField, entryDateField, unitPriceField, quantityField, publisherField, taxField,
             totalPriceField;
 
     // JComboBox
@@ -66,6 +67,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
     private void initializeComponents() {
         // Initialize labels
         idLabel = new JLabel("ID:");
+        nameLabel = new JLabel("Name:");
         entryDateLabel = new JLabel("Entry Date:");
         unitPriceLabel = new JLabel("Unit Price:");
         quantityLabel = new JLabel("Quantity:");
@@ -77,6 +79,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
 
         // Initialize text fields
         idField = new JTextField(20);
+        nameField = new JTextField(20);
         entryDateField = new JTextField(20);
         unitPriceField = new JTextField(20);
         quantityField = new JTextField(20);
@@ -111,7 +114,8 @@ public class BookManagementUI extends JFrame implements Subscriber {
         searchButton = new JButton("Search");
 
         // Initialize table
-        String[] columnNames = { "ID", "Entry Date", "Unit Price", "Quantity", "Publisher", "Book Style", "Condition",
+        String[] columnNames = { "ID", "Name", "Entry Date", "Unit Price", "Quantity", "Publisher", "Book Style",
+                "Condition",
                 "Tax", "Total Price" };
         tableModel = new DefaultTableModel(columnNames, 0);
         bookTable = new JTable(tableModel);
@@ -163,6 +167,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
     public void addBook() {
         try {
             int id = Integer.parseInt(idField.getText());
+            String name = nameField.getText();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             java.util.Date utilDate = dateFormat.parse(entryDateField.getText());
             java.sql.Date entryDate = new java.sql.Date(utilDate.getTime());
@@ -173,7 +178,9 @@ public class BookManagementUI extends JFrame implements Subscriber {
             String condition = (String) conditionComboBox.getSelectedItem();
             double tax = taxField.isVisible() ? Double.parseDouble(taxField.getText()) : 0;
 
-            Book book = new Book(id, entryDate, unitPrice, quantity, publisher, bookType, condition, tax);
+            Book book = new Book(id, name, entryDate, unitPrice, quantity, publisher, bookType, condition, tax);
+
+            // System.out.println(name);
 
             Command command = new AddBookCommand(book);
             commandProcessor.execute(command);
@@ -181,17 +188,19 @@ public class BookManagementUI extends JFrame implements Subscriber {
             // Update table alter add book
             int rowIndex = findRowById(id);
             if (rowIndex != -1) {
-                tableModel.setValueAt(entryDate, rowIndex, 1);
-                tableModel.setValueAt(unitPrice, rowIndex, 2);
-                tableModel.setValueAt(quantity, rowIndex, 3);
-                tableModel.setValueAt(publisher, rowIndex, 4);
-                tableModel.setValueAt(bookType, rowIndex, 5);
-                tableModel.setValueAt(condition, rowIndex, 6);
-                tableModel.setValueAt(tax, rowIndex, 7);
-                tableModel.setValueAt(book.getTotalPrice(), rowIndex, 8);
+                tableModel.setValueAt(name, rowIndex, 1);
+                tableModel.setValueAt(entryDate, rowIndex, 2);
+                tableModel.setValueAt(unitPrice, rowIndex, 3);
+                tableModel.setValueAt(quantity, rowIndex, 4);
+                tableModel.setValueAt(publisher, rowIndex, 5);
+                tableModel.setValueAt(bookType, rowIndex, 6);
+                tableModel.setValueAt(condition, rowIndex, 7);
+                tableModel.setValueAt(tax, rowIndex, 8);
+                tableModel.setValueAt(book.getTotalPrice(), rowIndex, 9);
             } else {
-                tableModel.addRow(new Object[] { id, entryDate, unitPrice, quantity, publisher, bookType, condition,
-                        tax, book.getTotalPrice() });
+                tableModel
+                        .addRow(new Object[] { id, name, entryDate, unitPrice, quantity, publisher, bookType, condition,
+                                tax, book.getTotalPrice() });
             }
 
         } catch (Exception e) {
@@ -217,8 +226,30 @@ public class BookManagementUI extends JFrame implements Subscriber {
         // Code for editing a book
     }
 
-    public void findBook() {
-        // Code for finding a book
+    private void findBook() {
+        try {
+            int id = Integer.parseInt(idField.getText());
+            Command command = new FindBookCommand(id);
+            commandProcessor.execute(command);
+            Book book = ((FindBookCommand) command).getResult();
+
+            if (book != null) {
+                // Update the UI with the book details
+                nameField.setText(book.getName());
+                entryDateField.setText(book.getEntryDate().toString());
+                unitPriceField.setText(String.valueOf(book.getUnitPrice()));
+                quantityField.setText(String.valueOf(book.getQuantity()));
+                publisherField.setText(book.getPublisher());
+                bookTypeComboBox.setSelectedItem(book.getBookType());
+                conditionComboBox.setSelectedItem(book.getCondition());
+                taxField.setText(String.valueOf(book.getTax()));
+                totalPriceField.setText(String.valueOf(book.getTotalPrice()));
+            } else {
+                JOptionPane.showMessageDialog(this, "Book not found", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid ID", "Input Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public void searchBook() {
@@ -277,6 +308,11 @@ public class BookManagementUI extends JFrame implements Subscriber {
         panel.add(idLabel, gbc);
         gbc.gridx++;
         panel.add(idField, gbc);
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(nameLabel, gbc);
+        gbc.gridx++;
+        panel.add(nameField, gbc);
         gbc.gridx = 0;
         gbc.gridy++;
         panel.add(entryDateLabel, gbc);
@@ -345,6 +381,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
         for (Book book : books) {
             tableModel.addRow(new Object[] {
                     book.getId(),
+                    book.getName(),
                     book.getEntryDate(),
                     book.getUnitPrice(),
                     book.getQuantity(),
