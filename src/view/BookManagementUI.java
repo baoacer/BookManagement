@@ -1,6 +1,8 @@
 package view;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
 import Command_Processor.AddBookCommand;
@@ -8,6 +10,9 @@ import Command_Processor.Command;
 import Command_Processor.CommandProcessor;
 import Command_Processor.FindBookCommand;
 import Command_Processor.GetAllBookCommand;
+import Command_Processor.RemoveBookCommand;
+import Command_Processor.SearchBookCommand;
+import Command_Processor.UpdateBookCommand;
 import Entity.Book;
 import observer.Subscriber;
 
@@ -109,7 +114,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
         calculateButton = new JButton("Calculate Total Price");
 
         // Initialize search components
-        searchLabel = new JLabel("Search by ID:");
+        searchLabel = new JLabel("Search by Name:");
         searchField = new JTextField(20);
         searchButton = new JButton("Search");
 
@@ -135,10 +140,30 @@ public class BookManagementUI extends JFrame implements Subscriber {
             }
         });
 
+        // Add selection listener to the table
+        bookTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent event) {
+                if (!event.getValueIsAdjusting() && bookTable.getSelectedRow() != -1) {
+                    int selectedRow = bookTable.getSelectedRow();
+                    idField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 0)));
+                    nameField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 1)));
+                    entryDateField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 2)));
+                    unitPriceField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 3)));
+                    quantityField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 4)));
+                    publisherField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 5)));
+                    bookTypeComboBox.setSelectedItem(String.valueOf(tableModel.getValueAt(selectedRow, 6)));
+                    conditionComboBox.setSelectedItem(String.valueOf(tableModel.getValueAt(selectedRow, 7)));
+                    taxField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 8)));
+                    totalPriceField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 9)));
+                }
+            }
+        });
+
         editButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                editBook();
+                updateBook();
             }
         });
 
@@ -180,8 +205,6 @@ public class BookManagementUI extends JFrame implements Subscriber {
 
             Book book = new Book(id, name, entryDate, unitPrice, quantity, publisher, bookType, condition, tax);
 
-            // System.out.println(name);
-
             Command command = new AddBookCommand(book);
             commandProcessor.execute(command);
 
@@ -219,11 +242,64 @@ public class BookManagementUI extends JFrame implements Subscriber {
     }
 
     public void removeBook() {
-        // Code for removing a book
+        try {
+            int selectedRow = bookTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a book to remove.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            int id = (int) tableModel.getValueAt(selectedRow, 0);
+            Command command = new RemoveBookCommand(id);
+            commandProcessor.execute(command);
+
+            tableModel.removeRow(selectedRow);
+
+            JOptionPane.showMessageDialog(this, "Book removed successfully.");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error removing book: " + e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
-    public void editBook() {
-        // Code for editing a book
+    public void updateBook() {
+        try {
+            int id = Integer.parseInt(idField.getText());
+            String name = nameField.getText();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            java.util.Date utilDate = dateFormat.parse(entryDateField.getText());
+            java.sql.Date entryDate = new java.sql.Date(utilDate.getTime());
+            double unitPrice = Double.parseDouble(unitPriceField.getText());
+            int quantity = Integer.parseInt(quantityField.getText());
+            String publisher = publisherField.getText();
+            String bookType = (String) bookTypeComboBox.getSelectedItem();
+            String condition = (String) conditionComboBox.getSelectedItem();
+            double tax = taxField.isVisible() ? Double.parseDouble(taxField.getText()) : 0;
+
+            Book book = new Book(id, name, entryDate, unitPrice, quantity, publisher, bookType, condition, tax);
+
+            // Tạo lệnh update và thực thi
+            Command command = new UpdateBookCommand(book);
+            commandProcessor.execute(command);
+
+            // Update bảng sau khi cập nhật
+            int rowIndex = findRowById(id);
+            if (rowIndex != -1) {
+                tableModel.setValueAt(name, rowIndex, 1);
+                tableModel.setValueAt(entryDate, rowIndex, 2);
+                tableModel.setValueAt(unitPrice, rowIndex, 3);
+                tableModel.setValueAt(quantity, rowIndex, 4);
+                tableModel.setValueAt(publisher, rowIndex, 5);
+                tableModel.setValueAt(bookType, rowIndex, 6);
+                tableModel.setValueAt(condition, rowIndex, 7);
+                tableModel.setValueAt(tax, rowIndex, 8);
+                tableModel.setValueAt(book.getTotalPrice(), rowIndex, 9);
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     private void findBook() {
@@ -252,8 +328,38 @@ public class BookManagementUI extends JFrame implements Subscriber {
         }
     }
 
-    public void searchBook() {
-        // Code for searching a book
+    private void searchBook() {
+        try {
+            String name = searchField.getText().trim();
+            if (name.isEmpty()) {
+                throw new IllegalArgumentException("Name cannot be empty");
+            }
+
+            Command command = new SearchBookCommand(name);
+            commandProcessor.execute(command);
+            List<Book> books = ((SearchBookCommand) command).getResults();
+
+            // Clear existing data in table
+            tableModel.setRowCount(0);
+
+            // Add found books to the table
+            for (Book book : books) {
+                tableModel.addRow(new Object[] {
+                        book.getId(),
+                        book.getName(),
+                        book.getEntryDate(),
+                        book.getUnitPrice(),
+                        book.getQuantity(),
+                        book.getPublisher(),
+                        book.getBookType(),
+                        book.getCondition(),
+                        book.getTax(),
+                        book.getTotalPrice()
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void toggleTaxAndConditionFields() {

@@ -14,4 +14,6 @@ public interface BookRepository {
     void updateBook(Book book);
 
     void removeBook(int id);
+
+    List<Book> findBooksByName(String name);
 }

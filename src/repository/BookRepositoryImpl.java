@@ -139,4 +139,36 @@ public class BookRepositoryImpl implements BookRepository {
             System.out.println(e.getMessage());
         }
     }
+
+    @Override
+    public List<Book> findBooksByName(String name) {
+        String sql = "SELECT * FROM books WHERE name LIKE ?";
+        List<Book> books = new ArrayList<>();
+
+        try (Connection connect = connect();
+                PreparedStatement pstmt = connect.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + name + "%");
+            ResultSet result = pstmt.executeQuery();
+
+            while (result.next()) {
+                Book book = new Book(
+                        result.getInt("id"),
+                        result.getString("name"),
+                        result.getDate("entryDate"),
+                        result.getDouble("unitPrice"),
+                        result.getInt("quantity"),
+                        result.getString("publisher"),
+                        result.getString("bookType"),
+                        result.getString("conditions"),
+                        result.getDouble("tax"),
+                        result.getDouble("totalPrice"));
+                books.add(book);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+
+        return books;
+    }
+
 }
