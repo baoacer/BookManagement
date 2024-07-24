@@ -2,7 +2,6 @@ package Command_Processor;
 
 import Entity.Book;
 import repository.BookRepository;
-import repository.BookRepositoryImpl;
 
 public class FindBookCommand extends Command {
 
@@ -10,8 +9,8 @@ public class FindBookCommand extends Command {
     private int bookId;
     private Book result;
 
-    public FindBookCommand(int bookId) {
-        this.bookRepository = new BookRepositoryImpl();
+    public FindBookCommand(int bookId, BookRepository bookRepository) {
+        this.bookRepository = bookRepository;
         this.bookId = bookId;
     }
 

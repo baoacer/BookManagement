@@ -8,13 +8,15 @@ import javax.swing.table.DefaultTableModel;
 import Command_Processor.AddBookCommand;
 import Command_Processor.Command;
 import Command_Processor.CommandProcessor;
-import Command_Processor.FindBookCommand;
 import Command_Processor.GetAllBookCommand;
 import Command_Processor.RemoveBookCommand;
 import Command_Processor.SearchBookCommand;
 import Command_Processor.UpdateBookCommand;
 import Entity.Book;
+import Entity.ReferenceBook;
+import Entity.TextBook;
 import observer.Subscriber;
+import repository.BookRepository;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ import java.text.SimpleDateFormat;
 public class BookManagementUI extends JFrame implements Subscriber {
 
     private CommandProcessor commandProcessor;
+    private BookRepository bookRepository;
 
     // Field
     // Table
@@ -34,25 +37,26 @@ public class BookManagementUI extends JFrame implements Subscriber {
 
     // JLabel
     private JLabel idLabel, nameLabel, entryDateLabel, unitPriceLabel, quantityLabel, publisherLabel, bookTypeLabel,
-            conditionLabel, taxLabel, totalPriceLabel;
+            conditionLabel, taxLabel;
 
     // JTextField
-    private JTextField idField, nameField, entryDateField, unitPriceField, quantityField, publisherField, taxField,
-            totalPriceField;
+    private JTextField idField, nameField, entryDateField, unitPriceField, quantityField, publisherField, taxField;
 
     // JComboBox
     private JComboBox<String> bookTypeComboBox, conditionComboBox;
 
     // JButton
-    private JButton addButton, removeButton, editButton, findButton, calculateButton;
+    private JButton addButton, removeButton, editButton, findButton;
 
     // Search
     private JLabel searchLabel;
     private JTextField searchField;
     private JButton searchButton;
 
-    public BookManagementUI(CommandProcessor commandProcessor) {
+    public BookManagementUI(CommandProcessor commandProcessor, BookRepository repository) {
+
         this.commandProcessor = commandProcessor;
+        this.bookRepository = repository;
 
         // Initialize components
         initializeComponents();
@@ -80,7 +84,6 @@ public class BookManagementUI extends JFrame implements Subscriber {
         bookTypeLabel = new JLabel("Book Style:");
         conditionLabel = new JLabel("Condition:");
         taxLabel = new JLabel("Tax:");
-        totalPriceLabel = new JLabel("Total Price:");
 
         // Initialize text fields
         idField = new JTextField(20);
@@ -90,7 +93,6 @@ public class BookManagementUI extends JFrame implements Subscriber {
         quantityField = new JTextField(20);
         publisherField = new JTextField(20);
         taxField = new JTextField(20);
-        totalPriceField = new JTextField(20);
 
         // Initialize combo box
         String[] bookTypes = { "TextBook", "ReferenceBook" };
@@ -111,7 +113,6 @@ public class BookManagementUI extends JFrame implements Subscriber {
         removeButton = new JButton("Remove");
         editButton = new JButton("Edit");
         findButton = new JButton("Find");
-        calculateButton = new JButton("Calculate Total Price");
 
         // Initialize search components
         searchLabel = new JLabel("Search by Name:");
@@ -155,7 +156,6 @@ public class BookManagementUI extends JFrame implements Subscriber {
                     bookTypeComboBox.setSelectedItem(String.valueOf(tableModel.getValueAt(selectedRow, 6)));
                     conditionComboBox.setSelectedItem(String.valueOf(tableModel.getValueAt(selectedRow, 7)));
                     taxField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 8)));
-                    totalPriceField.setText(String.valueOf(tableModel.getValueAt(selectedRow, 9)));
                 }
             }
         });
@@ -181,49 +181,52 @@ public class BookManagementUI extends JFrame implements Subscriber {
             }
         });
 
-        calculateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                calculateTotalPrice();
-            }
-        });
     }
 
     public void addBook() {
         try {
+
+            // Get value from Text Field
             int id = Integer.parseInt(idField.getText());
             String name = nameField.getText();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             java.util.Date utilDate = dateFormat.parse(entryDateField.getText());
             java.sql.Date entryDate = new java.sql.Date(utilDate.getTime());
-            double unitPrice = Double.parseDouble(unitPriceField.getText());
-            int quantity = Integer.parseInt(quantityField.getText());
             String publisher = publisherField.getText();
             String bookType = (String) bookTypeComboBox.getSelectedItem();
-            String condition = (String) conditionComboBox.getSelectedItem();
+            int quantity = Integer.parseInt(quantityField.getText());
+            double unitPrice = Double.parseDouble(unitPriceField.getText());
             double tax = taxField.isVisible() ? Double.parseDouble(taxField.getText()) : 0;
 
-            Book book = new Book(id, name, entryDate, unitPrice, quantity, publisher, bookType, condition, tax);
+            Book book = null;
 
-            Command command = new AddBookCommand(book);
+            if ("TextBook".equals(bookType)) {
+                String condition = (String) conditionComboBox.getSelectedItem();
+                book = new TextBook(id, name, entryDate, unitPrice, quantity, publisher, condition);
+            } else {
+                book = new ReferenceBook(id, name, entryDate, unitPrice, quantity, publisher, tax);
+            }
+
+            Command command = new AddBookCommand(book, bookRepository);
             commandProcessor.execute(command);
 
-            // Update table alter add book
-            int rowIndex = findRowById(id);
-            if (rowIndex != -1) {
-                tableModel.setValueAt(name, rowIndex, 1);
-                tableModel.setValueAt(entryDate, rowIndex, 2);
-                tableModel.setValueAt(unitPrice, rowIndex, 3);
-                tableModel.setValueAt(quantity, rowIndex, 4);
-                tableModel.setValueAt(publisher, rowIndex, 5);
-                tableModel.setValueAt(bookType, rowIndex, 6);
-                tableModel.setValueAt(condition, rowIndex, 7);
-                tableModel.setValueAt(tax, rowIndex, 8);
-                tableModel.setValueAt(book.getTotalPrice(), rowIndex, 9);
+            // Update table alter add Book
+            int index = findRowById(id);
+            if (index == -1) {
+                tableModel.addRow(new Object[] {
+                        book.getId(),
+                        book.getName(),
+                        book.getEntryDate(),
+                        book.getUnitPrice(),
+                        book.getQuantity(),
+                        book.getPublisher(),
+                        bookType,
+                        book instanceof TextBook ? ((TextBook) book).getCondition() : "",
+                        book instanceof ReferenceBook ? ((ReferenceBook) book).getTax() : "",
+                        book.getTotalPrice()
+                });
             } else {
-                tableModel
-                        .addRow(new Object[] { id, name, entryDate, unitPrice, quantity, publisher, bookType, condition,
-                                tax, book.getTotalPrice() });
+                JOptionPane.showMessageDialog(null, "Duplicate book ID!", "Error", JOptionPane.ERROR_MESSAGE);
             }
 
         } catch (Exception e) {
@@ -231,6 +234,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
         }
     }
 
+    // Check Id exists?
     private int findRowById(int id) {
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             int bookId = (int) tableModel.getValueAt(i, 0);
@@ -243,6 +247,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
 
     public void removeBook() {
         try {
+
             int selectedRow = bookTable.getSelectedRow();
             if (selectedRow == -1) {
                 JOptionPane.showMessageDialog(this, "Please select a book to remove.", "Error",
@@ -251,7 +256,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
             }
 
             int id = (int) tableModel.getValueAt(selectedRow, 0);
-            Command command = new RemoveBookCommand(id);
+            Command command = new RemoveBookCommand(id, bookRepository);
             commandProcessor.execute(command);
 
             tableModel.removeRow(selectedRow);
@@ -265,66 +270,79 @@ public class BookManagementUI extends JFrame implements Subscriber {
 
     public void updateBook() {
         try {
+            int selectedRow = bookTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(null, "Please select a book to update.");
+                return;
+            }
+
             int id = Integer.parseInt(idField.getText());
             String name = nameField.getText();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
             java.util.Date utilDate = dateFormat.parse(entryDateField.getText());
             java.sql.Date entryDate = new java.sql.Date(utilDate.getTime());
-            double unitPrice = Double.parseDouble(unitPriceField.getText());
-            int quantity = Integer.parseInt(quantityField.getText());
             String publisher = publisherField.getText();
             String bookType = (String) bookTypeComboBox.getSelectedItem();
-            String condition = (String) conditionComboBox.getSelectedItem();
+            int quantity = Integer.parseInt(quantityField.getText());
+            double unitPrice = Double.parseDouble(unitPriceField.getText());
             double tax = taxField.isVisible() ? Double.parseDouble(taxField.getText()) : 0;
 
-            Book book = new Book(id, name, entryDate, unitPrice, quantity, publisher, bookType, condition, tax);
+            Book book = null;
+            if ("TextBook".equals(bookType)) {
+                String condition = (String) conditionComboBox.getSelectedItem();
+                book = new TextBook(id, name, entryDate, unitPrice, quantity, publisher, condition);
+            } else {
+                book = new ReferenceBook(id, name, entryDate, unitPrice, quantity, publisher, tax);
+            }
 
-            // Tạo lệnh update và thực thi
-            Command command = new UpdateBookCommand(book);
+            Command command = new UpdateBookCommand(book, bookRepository);
             commandProcessor.execute(command);
 
-            // Update bảng sau khi cập nhật
-            int rowIndex = findRowById(id);
-            if (rowIndex != -1) {
-                tableModel.setValueAt(name, rowIndex, 1);
-                tableModel.setValueAt(entryDate, rowIndex, 2);
-                tableModel.setValueAt(unitPrice, rowIndex, 3);
-                tableModel.setValueAt(quantity, rowIndex, 4);
-                tableModel.setValueAt(publisher, rowIndex, 5);
-                tableModel.setValueAt(bookType, rowIndex, 6);
-                tableModel.setValueAt(condition, rowIndex, 7);
-                tableModel.setValueAt(tax, rowIndex, 8);
-                tableModel.setValueAt(book.getTotalPrice(), rowIndex, 9);
-            }
+            tableModel.setValueAt(book.getId(), selectedRow, 0);
+            tableModel.setValueAt(book.getName(), selectedRow, 1);
+            tableModel.setValueAt(book.getEntryDate(), selectedRow, 2);
+            tableModel.setValueAt(book.getUnitPrice(), selectedRow, 3);
+            tableModel.setValueAt(book.getQuantity(), selectedRow, 4);
+
+            tableModel.setValueAt(book.getPublisher(), selectedRow, 5);
+            tableModel.setValueAt(bookType, selectedRow, 6);
+            tableModel.setValueAt(book instanceof TextBook ? ((TextBook) book).getCondition() : "", selectedRow, 7);
+            tableModel.setValueAt(book instanceof ReferenceBook ? ((ReferenceBook) book).getTax() : "", selectedRow, 8);
+            tableModel.setValueAt(book.getTotalPrice(), selectedRow, 9);
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    private void findBook() {
+    public void findBook() {
         try {
             int id = Integer.parseInt(idField.getText());
-            Command command = new FindBookCommand(id);
-            commandProcessor.execute(command);
-            Book book = ((FindBookCommand) command).getResult();
+            Book book = bookRepository.getBookById(id);
 
             if (book != null) {
-                // Update the UI with the book details
+                idField.setText(String.valueOf(book.getId()));
                 nameField.setText(book.getName());
                 entryDateField.setText(book.getEntryDate().toString());
-                unitPriceField.setText(String.valueOf(book.getUnitPrice()));
-                quantityField.setText(String.valueOf(book.getQuantity()));
                 publisherField.setText(book.getPublisher());
-                bookTypeComboBox.setSelectedItem(book.getBookType());
-                conditionComboBox.setSelectedItem(book.getCondition());
-                taxField.setText(String.valueOf(book.getTax()));
-                totalPriceField.setText(String.valueOf(book.getTotalPrice()));
+                bookTypeComboBox.setSelectedItem(book instanceof TextBook ? "TextBook" : "ReferenceBook");
+
+                if (book instanceof TextBook) {
+                    TextBook textBook = (TextBook) book;
+                    conditionComboBox.setSelectedItem(textBook.getCondition());
+                    quantityField.setText(String.valueOf(textBook.getQuantity()));
+                    unitPriceField.setText(String.valueOf(textBook.getUnitPrice()));
+                } else if (book instanceof ReferenceBook) {
+                    ReferenceBook referenceBook = (ReferenceBook) book;
+                    taxField.setText(String.valueOf(referenceBook.getTax()));
+                    quantityField.setText(String.valueOf(referenceBook.getQuantity()));
+                    unitPriceField.setText(String.valueOf(referenceBook.getUnitPrice()));
+                }
             } else {
-                JOptionPane.showMessageDialog(this, "Book not found", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Book not found.");
             }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Please enter a valid ID", "Input Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
     }
 
@@ -335,7 +353,7 @@ public class BookManagementUI extends JFrame implements Subscriber {
                 throw new IllegalArgumentException("Name cannot be empty");
             }
 
-            Command command = new SearchBookCommand(name);
+            Command command = new SearchBookCommand(name, bookRepository);
             commandProcessor.execute(command);
             List<Book> books = ((SearchBookCommand) command).getResults();
 
@@ -344,18 +362,18 @@ public class BookManagementUI extends JFrame implements Subscriber {
 
             // Add found books to the table
             for (Book book : books) {
-                tableModel.addRow(new Object[] {
-                        book.getId(),
-                        book.getName(),
-                        book.getEntryDate(),
-                        book.getUnitPrice(),
-                        book.getQuantity(),
-                        book.getPublisher(),
-                        book.getBookType(),
-                        book.getCondition(),
-                        book.getTax(),
-                        book.getTotalPrice()
-                });
+                Object[] rowData = new Object[10];
+                rowData[0] = book.getId();
+                rowData[1] = book.getName();
+                rowData[2] = book.getEntryDate();
+                rowData[3] = book.getUnitPrice();
+                rowData[4] = book.getQuantity();
+                rowData[5] = book.getPublisher();
+                rowData[6] = book instanceof TextBook ? "TextBook" : "ReferenceBook";
+                rowData[7] = book instanceof TextBook ? ((TextBook) book).getCondition() : "";
+                rowData[8] = book instanceof ReferenceBook ? ((ReferenceBook) book).getTax() : "";
+                rowData[9] = book.getTotalPrice();
+                tableModel.addRow(rowData);
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -369,20 +387,6 @@ public class BookManagementUI extends JFrame implements Subscriber {
         taxField.setVisible(!isTextBook);
         conditionLabel.setVisible(isTextBook);
         conditionComboBox.setVisible(isTextBook);
-    }
-
-    private void calculateTotalPrice() {
-        try {
-            double unitPrice = Double.parseDouble(unitPriceField.getText());
-            int quantity = Integer.parseInt(quantityField.getText());
-            double tax = taxField.isVisible() ? Double.parseDouble(taxField.getText()) : 0;
-
-            double totalPrice = unitPrice * quantity + tax;
-            totalPriceField.setText(String.valueOf(totalPrice));
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Please enter valid numbers for Unit Price, Quantity, and Tax.",
-                    "Input Error", JOptionPane.ERROR_MESSAGE);
-        }
     }
 
     private void setupLayout() {
@@ -456,11 +460,6 @@ public class BookManagementUI extends JFrame implements Subscriber {
         panel.add(taxField, gbc);
         gbc.gridx = 0;
         gbc.gridy++;
-        panel.add(totalPriceLabel, gbc);
-        gbc.gridx++;
-        panel.add(totalPriceField, gbc);
-        gbc.gridx++;
-        panel.add(calculateButton, gbc); // Add calculate button next to total price field
 
         gbc.gridx = 0;
         gbc.gridy++;
@@ -481,22 +480,42 @@ public class BookManagementUI extends JFrame implements Subscriber {
     }
 
     private void loadBooksFromDatabase() {
-        Command command = new GetAllBookCommand();
+
+        Command command = new GetAllBookCommand(bookRepository);
         commandProcessor.execute(command);
+
         List<Book> books = ((GetAllBookCommand) command).getResult();
+
         for (Book book : books) {
-            tableModel.addRow(new Object[] {
-                    book.getId(),
-                    book.getName(),
-                    book.getEntryDate(),
-                    book.getUnitPrice(),
-                    book.getQuantity(),
-                    book.getPublisher(),
-                    book.getBookType(),
-                    book.getCondition(),
-                    book.getTax(),
-                    book.getTotalPrice()
-            });
+            if (book instanceof TextBook) {
+                TextBook textBook = (TextBook) book;
+                tableModel.addRow(new Object[] {
+                        textBook.getId(),
+                        textBook.getName(),
+                        textBook.getEntryDate(),
+                        textBook.getUnitPrice(),
+                        textBook.getQuantity(),
+                        textBook.getPublisher(),
+                        textBook.getBookType(),
+                        textBook.getCondition(),
+                        "",
+                        textBook.getTotalPrice()
+                });
+            } else if (book instanceof ReferenceBook) {
+                ReferenceBook referenceBook = (ReferenceBook) book;
+                tableModel.addRow(new Object[] {
+                        referenceBook.getId(),
+                        referenceBook.getName(),
+                        referenceBook.getEntryDate(),
+                        referenceBook.getUnitPrice(),
+                        referenceBook.getQuantity(),
+                        referenceBook.getPublisher(),
+                        referenceBook.getBookType(),
+                        "",
+                        referenceBook.getTax(),
+                        referenceBook.getTotalPrice()
+                });
+            }
         }
     }
 

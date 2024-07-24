@@ -4,7 +4,6 @@ import java.util.List;
 
 import Entity.Book;
 import repository.BookRepository;
-import repository.BookRepositoryImpl;
 
 public class SearchBookCommand extends Command {
 
@@ -12,8 +11,8 @@ public class SearchBookCommand extends Command {
     private String search;
     private List<Book> results;
 
-    public SearchBookCommand(String search) {
-        this.bookRepository = new BookRepositoryImpl();
+    public SearchBookCommand(String search, BookRepository bookRepository) {
+        this.bookRepository = bookRepository;
         this.search = search;
     }
 

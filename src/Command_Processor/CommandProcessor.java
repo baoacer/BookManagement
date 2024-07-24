@@ -1,13 +1,11 @@
 package Command_Processor;
 
-import repository.BookRepository;
-
 public class CommandProcessor {
 
     private static CommandProcessor commandProcessor = null;
-    private BookRepository bookRepository;
 
     private CommandProcessor() {
+
     }
 
     public static CommandProcessor makeCommandProcessor() {

@@ -1,56 +1,71 @@
 package Entity;
 
-import java.sql.Date;
+import java.util.Date;
 
-import observer.Publisher;
-
-public class Book extends Publisher {
+public abstract class Book {
     private int id;
     private String name;
     private Date entryDate;
-    private double unitPrice;
-    private int quantity;
     private String publisher;
-    private String bookType;
-    private String condition;
-    private double tax;
     private double totalPrice;
+    private int quantity;
+    private double unitPrice;
 
-    // constructors
-    public Book() {
-    };
-
-    public Book(int id, String name, Date entryDate, double unitPrice, int quantity, String publisher, String bookType,
-            String condition, double tax, double totalPrice) {
+    public Book(int id, String name, Date entryDate, String publisher, int quantity, double unitPrice) {
         this.id = id;
         this.name = name;
         this.entryDate = entryDate;
-        this.unitPrice = unitPrice;
-        this.quantity = quantity;
         this.publisher = publisher;
-        this.bookType = bookType;
-        this.condition = condition;
-        this.tax = tax;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+    }
+
+    public Book(int id, String name, Date entryDate, String publisher, int quantity, double unitPrice,
+            double totalPrice) {
+        this.id = id;
+        this.name = name;
+        this.entryDate = entryDate;
+        this.publisher = publisher;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
         this.totalPrice = totalPrice;
     }
 
-    public Book(int id, String name, Date entryDate, double unitPrice, int quantity, String publisher, String bookType,
-            String condition, double tax) {
-        this.id = id;
-        this.name = name;
-        this.entryDate = entryDate;
-        this.unitPrice = unitPrice;
-        this.quantity = quantity;
-        this.publisher = publisher;
-        this.bookType = bookType;
-        this.condition = condition;
-        this.tax = tax;
-        this.totalPrice = this.quantity * this.unitPrice + this.tax;
-    }
-
-    // getter
+    // Getter và Setter
     public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setEntryDate(Date entryDate) {
+        this.entryDate = entryDate;
+    }
+
+    public void setPublisher(String publisher) {
+        this.publisher = publisher;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public void setUnitPrice(double unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public double getUnitPrice() {
+        return unitPrice;
     }
 
     public String getName() {
@@ -61,98 +76,23 @@ public class Book extends Publisher {
         return entryDate;
     }
 
-    public double getUnitPrice() {
-        return unitPrice;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
     public String getPublisher() {
         return publisher;
-    }
-
-    public String getBookType() {
-        return bookType;
-    }
-
-    public String getCondition() {
-        return condition;
-    }
-
-    public double getTax() {
-        return tax;
     }
 
     public double getTotalPrice() {
         return totalPrice;
     }
 
-    // setter
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setEntryDate(Date entryDate) {
-        this.entryDate = entryDate;
-    }
-
-    public void setUnitPrice(double unitPrice) {
-        this.unitPrice = unitPrice;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
-
-    public void setPublisher(String publisher) {
-        this.publisher = publisher;
-    }
-
-    public void setBookType(String bookType) {
-        this.bookType = bookType;
-    }
-
-    public void setCondition(String condition) {
-        this.condition = condition;
-    }
-
-    public void setTax(double tax) {
-        this.tax = tax;
-    }
-
-    public void setTotalPrice(double totalPrice) {
+    protected void setTotalPrice(double totalPrice) {
         this.totalPrice = totalPrice;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    // Abstract methods
+    public abstract void calculateTotalPrice();
 
-    // functions, methods
-    public void textBookNew() {
-        this.totalPrice = this.quantity * this.unitPrice;
-        changeStatus();
-    }
+    public abstract String getBookType();
 
-    public void textBookOld() {
-        this.totalPrice = this.quantity * this.unitPrice * 0.5;
-        changeStatus();
-    }
-
-    public void referenceBook() {
-        this.totalPrice = this.quantity * this.unitPrice + this.tax;
-        changeStatus();
-    }
-
-    public void changeStatus() {
-        notifySubscribers();
-    }
-
-    @Override
-    public void notifySubscribers() {
-        super.notifySubscribers();
-    }
+    public abstract double averageUnitPrice();
 
 }

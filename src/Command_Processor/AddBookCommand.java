@@ -1,29 +1,29 @@
 package Command_Processor;
 
 import Entity.Book;
+import Entity.TextBook;
 import repository.BookRepository;
-import repository.BookRepositoryImpl;
 
 public class AddBookCommand extends Command {
 
     private BookRepository bookRepository;
     private Book book;
 
-    public AddBookCommand(Book book) {
-        this.bookRepository = new BookRepositoryImpl();
+    public AddBookCommand(Book book, BookRepository bookRepository) {
 
-        if (book.getCondition() == "New") {
-            book.textBookNew();
+        this.bookRepository = bookRepository;
+
+        //
+        if (book instanceof TextBook) {
+            TextBook textBook = (TextBook) book;
+            this.book = textBook;
         } else {
-            book.textBookOld();
+            this.book = book;
         }
-
-        this.book = book;
     }
 
     @Override
     public void execute() {
         bookRepository.addBook(book);
     }
-
 }
